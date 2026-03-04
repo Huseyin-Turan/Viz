@@ -1,0 +1,608 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>P1 / P99 Winsorize Görselleştirici</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+  :root {
+    --bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;
+    --c1:#00d4ff;--c2:#ff6b35;--c3:#7c3aed;--c4:#22c55e;
+    --text:#e2e8f0;--muted:#64748b;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{background:var(--bg);color:var(--text);font-family:'Syne',sans-serif;min-height:100vh;padding:28px 24px;}
+  h1{font-size:1.8rem;font-weight:800;letter-spacing:-.03em;background:linear-gradient(135deg,#7c3aed,#00d4ff);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px;}
+  .subtitle{color:var(--muted);font-size:.8rem;font-family:'JetBrains Mono',monospace;margin-bottom:24px;}
+  .steps-nav{display:flex;gap:8px;margin-bottom:24px;flex-wrap:wrap;}
+  .step-btn{background:var(--surface);border:1px solid var(--border);color:var(--muted);padding:10px 16px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.75rem;cursor:pointer;transition:all .2s;display:flex;align-items:center;gap:8px;}
+  .step-btn:hover{border-color:var(--c1);color:var(--text);}
+  .step-btn.active{background:rgba(0,212,255,.1);border-color:var(--c1);color:var(--c1);}
+  .step-num{background:var(--border);width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:.7rem;font-weight:700;}
+  .step-btn.active .step-num{background:var(--c1);color:#000;}
+  .panel{display:none;} .panel.active{display:block;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px;}
+  .card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:18px;margin-bottom:16px;}
+  .card-title{font-size:.68rem;font-family:'JetBrains Mono',monospace;color:var(--muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:14px;}
+  .card-title span{color:var(--c1);}
+  canvas{width:100%;display:block;}
+  .explain-box{background:rgba(124,58,237,.08);border:1px solid rgba(124,58,237,.25);border-radius:10px;padding:16px 20px;font-family:'JetBrains Mono',monospace;font-size:.78rem;line-height:1.8;color:#c4b5fd;margin-bottom:16px;}
+  .explain-box strong{color:#fff;}
+  .stats-row{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:16px;}
+  .stat-box{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:10px 14px;text-align:center;flex:1;min-width:90px;}
+  .stat-label{font-size:.62rem;color:var(--muted);font-family:'JetBrains Mono',monospace;margin-bottom:4px;}
+  .stat-value{font-size:1.1rem;font-weight:700;font-family:'JetBrains Mono',monospace;}
+  .controls{display:flex;gap:14px;align-items:center;flex-wrap:wrap;margin-bottom:18px;}
+  .control-card{background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;}
+  .control-label{font-size:.72rem;font-family:'JetBrains Mono',monospace;color:var(--muted);}
+  .control-val{font-family:'JetBrains Mono',monospace;font-size:.9rem;font-weight:700;color:var(--c1);background:rgba(0,212,255,.1);padding:2px 10px;border-radius:6px;min-width:44px;text-align:center;}
+  input[type=range]{width:100px;-webkit-appearance:none;height:4px;border-radius:2px;background:var(--border);outline:none;cursor:pointer;}
+  input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:var(--c1);box-shadow:0 0 8px rgba(0,212,255,.5);cursor:pointer;}
+  .btn{background:rgba(0,212,255,.1);border:1px solid rgba(0,212,255,.3);color:var(--c1);padding:8px 14px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.76rem;cursor:pointer;transition:all .2s;}
+  .btn:hover{background:rgba(0,212,255,.2);}
+  .legend{display:flex;gap:14px;flex-wrap:wrap;margin-top:10px;}
+  .legend-item{display:flex;align-items:center;gap:6px;font-size:.7rem;font-family:'JetBrains Mono',monospace;color:var(--muted);}
+  .ldot{width:10px;height:10px;border-radius:50%;}
+  .lline{width:20px;height:3px;border-radius:2px;}
+  table{width:100%;border-collapse:collapse;font-family:'JetBrains Mono',monospace;font-size:.72rem;}
+  th{color:var(--muted);font-weight:400;padding:6px 8px;text-align:right;border-bottom:1px solid var(--border);}
+  th:first-child{text-align:left;}
+  td{padding:6px 8px;text-align:right;border-bottom:1px solid #1e1e2e44;}
+  td:first-child{text-align:left;}
+  tr:hover td{background:rgba(255,255,255,.02);}
+  .nav-btns{display:flex;gap:10px;margin-top:16px;}
+  .nav-btn{background:rgba(124,58,237,.12);border:1px solid rgba(124,58,237,.3);color:#c4b5fd;padding:9px 18px;border-radius:8px;font-family:'JetBrains Mono',monospace;font-size:.78rem;cursor:pointer;transition:all .2s;}
+  .nav-btn:hover{background:rgba(124,58,237,.22);}
+  .nav-btn.next{background:rgba(0,212,255,.1);border-color:rgba(0,212,255,.3);color:var(--c1);}
+  .nav-btn.next:hover{background:rgba(0,212,255,.2);}
+</style>
+</head>
+<body>
+<h1>P1 / P99 Winsorize</h1>
+<p class="subtitle">Z-score uç değerleri nasıl bulunur ve kırpılır? — Adım adım görselleştirme</p>
+
+<div class="steps-nav">
+  <button class="step-btn active" onclick="goStep(0)"><span class="step-num">1</span>Z Dağılımı</button>
+  <button class="step-btn" onclick="goStep(1)"><span class="step-num">2</span>Sıralama & Bulma</button>
+  <button class="step-btn" onclick="goStep(2)"><span class="step-num">3</span>Winsorize Etkisi</button>
+  <button class="step-btn" onclick="goStep(3)"><span class="step-num">4</span>Sigmoid Farkı</button>
+  <button class="step-btn" onclick="goStep(4)"><span class="step-num">5</span>Canlı Ayar</button>
+</div>
+
+<!-- PANEL 1 -->
+<div class="panel active" id="panel0">
+  <div class="explain-box">
+    <strong>Problem: Z-Score'da Aykırı Değerler</strong><br>
+    Shrinkage + Log sonrası z-score hesaplandığında çoğu rental -3 ile +3 arasında kalır.<br>
+    Ama bazı rental'lar z = ±5, ±8 gibi çok uç değerler alabilir.<br><br>
+    Bu uç değerler sigmoid'e girince skor <strong>0 veya 100'e yapışır</strong> — sigmoid ayrım yapamaz.<br>
+    Çözüm: <strong>alt %1 ve üst %1'i kırp (winsorize)</strong>
+  </div>
+  <div class="card">
+    <div class="card-title">Z-Score Histogram — <span>Aykırı değerler turuncu</span></div>
+    <canvas id="c_hist1" height="280"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:#00d4ff"></div>Normal z (%98)</div>
+      <div class="legend-item"><div class="ldot" style="background:#ff6b35"></div>Aykırı değer (%2)</div>
+      <div class="legend-item"><div class="lline" style="background:#7c3aed"></div>P1 / P99 sınırı</div>
+    </div>
+  </div>
+  <div class="stats-row" id="sr1"></div>
+  <div class="nav-btns"><button class="nav-btn next" onclick="goStep(1)">Sonraki → Nasıl Bulunur?</button></div>
+</div>
+
+<!-- PANEL 2 -->
+<div class="panel" id="panel1">
+  <div class="explain-box">
+    <strong>P1 ve P99 Nasıl Bulunur?</strong><br>
+    Tüm z değerleri küçükten büyüğe sıralanır.<br>
+    <strong>P1</strong> = sıralı dizinin %1. konumundaki değer (alt uç)<br>
+    <strong>P99</strong> = sıralı dizinin %99. konumundaki değer (üst uç)<br><br>
+    SQL: <strong>PERCENTILE_CONT(0.01) WITHIN GROUP (ORDER BY z)</strong><br>
+    100 rental → en küçük 1 değer P1'i belirler<br>
+    1000 rental → en küçük 10 değer P1'i belirler
+  </div>
+  <div class="card">
+    <div class="card-title">Sıralanmış Z-Score — <span>%1 ve %99 konumları işaretli</span></div>
+    <canvas id="c_sorted" height="270"></canvas>
+  </div>
+  <div class="stats-row" id="sr2"></div>
+  <div class="nav-btns">
+    <button class="nav-btn" onclick="goStep(0)">← Geri</button>
+    <button class="nav-btn next" onclick="goStep(2)">Sonraki → Winsorize Etkisi</button>
+  </div>
+</div>
+
+<!-- PANEL 3 -->
+<div class="panel" id="panel2">
+  <div class="explain-box">
+    <strong>Winsorize = Kırp, Ama Sil Değil</strong><br>
+    z_c = min( max(z, P1), P99 )<br><br>
+    P1 altındakiler → P1 değerini alır &nbsp;|&nbsp; P99 üstündekiler → P99 değerini alır<br>
+    Aradaki <strong>%98 dokunulmaz</strong> — sadece uç %2 kırpılır.
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Önce — <span>Ham Z-Score</span></div>
+      <canvas id="c_before" height="240"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Sonra — <span>Winsorize Sonrası</span></div>
+      <canvas id="c_after" height="240"></canvas>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Etkilenen Rental'lar — <span>Detay Tablosu</span></div>
+    <div style="overflow-x:auto"><table id="clampTbl"></table></div>
+  </div>
+  <div class="nav-btns">
+    <button class="nav-btn" onclick="goStep(1)">← Geri</button>
+    <button class="nav-btn next" onclick="goStep(3)">Sonraki → Sigmoid Farkı</button>
+  </div>
+</div>
+
+<!-- PANEL 4 -->
+<div class="panel" id="panel3">
+  <div class="explain-box">
+    <strong>Sigmoid'e Etkisi</strong><br>
+    Kırmızı bölgeler = sigmoid'in <strong>ölü bölgesi</strong> (skor ≈ 0 veya ≈ 100, ayrım yok)<br>
+    Winsorize olmadan uç değerler ölü bölgeye girer → sigmoid onları ayırt edemez.<br>
+    Winsorize ile tüm değerler sigmoid'in <strong>aktif bölgesinde</strong> kalır.
+  </div>
+  <div class="grid2">
+    <div class="card">
+      <div class="card-title">Winsorize <span>Olmadan</span> — Ölü Bölge Var</div>
+      <canvas id="c_sig1" height="260"></canvas>
+    </div>
+    <div class="card">
+      <div class="card-title">Winsorize <span>Sonrası</span> — Hepsi Aktif Bölgede</div>
+      <canvas id="c_sig2" height="260"></canvas>
+    </div>
+  </div>
+  <div class="nav-btns">
+    <button class="nav-btn" onclick="goStep(2)">← Geri</button>
+    <button class="nav-btn next" onclick="goStep(4)">Sonraki → Canlı Ayar</button>
+  </div>
+</div>
+
+<!-- PANEL 5 -->
+<div class="panel" id="panel4">
+  <div class="explain-box">
+    <strong>Kırpma Yüzdesini Değiştir</strong><br>
+    %1/%99 standart seçimdir. Daha geniş kırparsan daha fazla rental etkilenir.<br>
+    Scatter'da ham z (x ekseni) vs kırpılmış z (y ekseni) — ölü çizgiden sapma = kırpma miktarı.
+  </div>
+  <div class="controls">
+    <div class="control-card">
+      <div class="control-label">Alt / Üst kırpma</div>
+      <input type="range" id="pctSlider" min="0.5" max="10" step="0.5" value="1">
+      <div class="control-val" id="pctVal">1%</div>
+    </div>
+    <button class="btn" id="regenBtn">↻ Yeni Veri</button>
+  </div>
+  <div class="stats-row" id="sr5"></div>
+  <div class="card">
+    <div class="card-title">Histogram — <span>Canlı Kırpma Sınırları</span></div>
+    <canvas id="c_live1" height="290"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="ldot" style="background:#00d4ff"></div>Dokunulmayan</div>
+      <div class="legend-item"><div class="ldot" style="background:#ff6b35"></div>Alt kırpılan</div>
+      <div class="legend-item"><div class="ldot" style="background:#ef4444"></div>Üst kırpılan</div>
+      <div class="legend-item"><div class="lline" style="background:#7c3aed"></div>Sınır</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Scatter — <span>Ham Z vs Kırpılmış Z</span></div>
+    <canvas id="c_live2" height="260"></canvas>
+  </div>
+  <div class="nav-btns"><button class="nav-btn" onclick="goStep(3)">← Geri</button></div>
+</div>
+
+<script>
+let zData = [];
+
+function bm() {
+  return Math.sqrt(-2*Math.log(Math.random()))*Math.cos(2*Math.PI*Math.random());
+}
+
+function gen() {
+  zData = [];
+  for (let i=0;i<88;i++) zData.push(bm()*1.3);
+  for (let i=0;i<6;i++) zData.push(4.5+Math.random()*5);
+  for (let i=0;i<6;i++) zData.push(-4.5-Math.random()*5);
+  zData.sort((a,b)=>a-b);
+}
+
+function pct(arr, p) {
+  const s=[...arr].sort((a,b)=>a-b);
+  const idx=(p/100)*(s.length-1);
+  const lo=Math.floor(idx),hi=Math.ceil(idx);
+  return s[lo]+(s[hi]-s[lo])*(idx-lo);
+}
+
+function clamp(arr, p1, p99) { return arr.map(v=>Math.min(Math.max(v,p1),p99)); }
+
+function ctx2d(id, h) {
+  const cv=document.getElementById(id);
+  const dpr=window.devicePixelRatio||1;
+  cv.width=cv.offsetWidth*dpr; cv.height=h*dpr;
+  const c=cv.getContext('2d'); c.scale(dpr,dpr);
+  c.fillStyle='#12121a'; c.fillRect(0,0,cv.offsetWidth,h);
+  return {c, w:cv.offsetWidth, h};
+}
+
+function grid(c, pad, pw, ph, xMin, xMax, yMax) {
+  for (let i=0;i<=5;i++) {
+    const x=pad.l+pw*i/5, xv=xMin+(xMax-xMin)*i/5;
+    const y=pad.t+ph*i/4, yv=yMax*(1-i/4);
+    c.strokeStyle='#1e1e2e'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,pad.t); c.lineTo(x,pad.t+ph); c.stroke();
+    if (i<=4) { c.beginPath(); c.moveTo(pad.l,y); c.lineTo(pad.l+pw,y); c.stroke(); }
+    c.fillStyle='#64748b'; c.font='9px JetBrains Mono';
+    c.textAlign='center'; c.fillText(xv.toFixed(1),x,pad.t+ph+14);
+    if (i<=4) { c.textAlign='right'; c.fillText(yv.toFixed(0),pad.l-4,y+3); }
+  }
+  c.textAlign='left';
+}
+
+// ── Histogram ─────────────────────────────────────────
+function hist(id, data, p1, p99, h) {
+  const {c,w} = ctx2d(id, h);
+  const pad={l:44,r:14,t:28,b:36};
+  const pw=w-pad.l-pad.r, ph=h-pad.t-pad.b;
+  const bins=32, xMin=-12, xMax=12;
+  const cnt=new Array(bins).fill(0);
+  data.forEach(v=>{ const b=Math.min(bins-1,Math.max(0,Math.floor((v-xMin)/(xMax-xMin)*bins))); cnt[b]++; });
+  const mx=Math.max(...cnt)||1;
+  grid(c,pad,pw,ph,xMin,xMax,mx);
+  const bw=pw/bins;
+  cnt.forEach((n,i)=>{
+    if(!n) return;
+    const xc=xMin+(i+.5)/bins*(xMax-xMin);
+    const out=xc<p1||xc>p99;
+    const x=pad.l+i*bw, bh=(n/mx)*ph, y=pad.t+ph-bh;
+    c.fillStyle=out?'#ff6b3566':'#00d4ff44';
+    c.strokeStyle=out?'#ff6b35':'#00d4ff77';
+    c.lineWidth=1;
+    c.beginPath(); c.roundRect(x+1,y,bw-2,bh,[2,2,0,0]); c.fill(); c.stroke();
+  });
+  const xP1=pad.l+(p1-xMin)/(xMax-xMin)*pw;
+  const xP99=pad.l+(p99-xMin)/(xMax-xMin)*pw;
+  c.fillStyle='#ff6b3510'; c.fillRect(pad.l,pad.t,Math.max(0,xP1-pad.l),ph);
+  c.fillRect(Math.min(pad.l+pw,xP99),pad.t,Math.max(0,pad.l+pw-xP99),ph);
+  [{x:xP1,lbl:`P1=${p1.toFixed(2)}`},{x:xP99,lbl:`P99=${p99.toFixed(2)}`}].forEach(l=>{
+    c.strokeStyle='#7c3aed'; c.lineWidth=2; c.setLineDash([5,3]);
+    c.beginPath(); c.moveTo(l.x,pad.t); c.lineTo(l.x,pad.t+ph); c.stroke(); c.setLineDash([]);
+    c.fillStyle='#a78bfa'; c.font='bold 9px JetBrains Mono'; c.textAlign='center';
+    c.fillText(l.lbl,l.x,pad.t-8);
+  });
+  c.textAlign='left';
+}
+
+// ── Sorted line ───────────────────────────────────────
+function sorted(id, data, p1, p99) {
+  const {c,w,h}=ctx2d(id,270); h;
+  const H=270;
+  const pad={l:50,r:14,t:30,b:36};
+  const pw=w-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const s=[...data].sort((a,b)=>a-b);
+  const n=s.length;
+  const yMin=s[0]*1.15, yMax=s[n-1]*1.15;
+  const toX=i=>pad.l+(i/(n-1))*pw;
+  const toY=v=>pad.t+ph-((v-yMin)/(yMax-yMin))*ph;
+
+  [0,25,50,75,100].forEach(p=>{
+    const x=pad.l+(p/100)*pw;
+    c.strokeStyle='#1e1e2e'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,pad.t); c.lineTo(x,pad.t+ph); c.stroke();
+    c.fillStyle='#64748b'; c.font='9px JetBrains Mono'; c.textAlign='center';
+    c.fillText(`%${p}`,x,pad.t+ph+14);
+  });
+  for (let i=0;i<=4;i++) {
+    const y=pad.t+ph*i/4, yv=yMax-(yMax-yMin)*i/4;
+    c.strokeStyle='#1e1e2e'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(pad.l,y); c.lineTo(pad.l+pw,y); c.stroke();
+    c.fillStyle='#64748b'; c.font='9px JetBrains Mono'; c.textAlign='right';
+    c.fillText(yv.toFixed(1),pad.l-4,y+3);
+  }
+
+  // P1/P99 region shade
+  const p1x=pad.l+0.01*pw, p99x=pad.l+0.99*pw;
+  c.fillStyle='#ff6b3510'; c.fillRect(pad.l,pad.t,p1x-pad.l,ph); c.fillRect(p99x,pad.t,pad.l+pw-p99x,ph);
+
+  // Draw line segments colored
+  s.forEach((v,i)=>{
+    if(i===0) return;
+    const out=v<p1||s[i-1]<p1||v>p99||s[i-1]>p99;
+    c.strokeStyle=out?'#ff6b35':'#00d4ff';
+    c.lineWidth=2;
+    c.beginPath(); c.moveTo(toX(i-1),toY(s[i-1])); c.lineTo(toX(i),toY(v)); c.stroke();
+  });
+
+  // Outlier dots
+  s.forEach((v,i)=>{
+    if(v<p1||v>p99){
+      c.fillStyle='#ff6b35';
+      c.beginPath(); c.arc(toX(i),toY(v),4,0,Math.PI*2); c.fill();
+    }
+  });
+
+  // P1/P99 markers
+  const p1i=Math.floor(0.01*(n-1)), p99i=Math.ceil(0.99*(n-1));
+  [{i:p1i,v:p1,lbl:`P1=${p1.toFixed(2)}`},{i:p99i,v:p99,lbl:`P99=${p99.toFixed(2)}`}].forEach(l=>{
+    const x=toX(l.i), y=toY(l.v);
+    // vertical
+    c.strokeStyle='#7c3aed'; c.lineWidth=2; c.setLineDash([5,3]);
+    c.beginPath(); c.moveTo(x,pad.t); c.lineTo(x,pad.t+ph); c.stroke(); c.setLineDash([]);
+    // horizontal
+    c.strokeStyle='#7c3aed66'; c.lineWidth=1; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(pad.l,y); c.lineTo(pad.l+pw,y); c.stroke(); c.setLineDash([]);
+    // dot
+    c.fillStyle='#7c3aed';
+    c.beginPath(); c.arc(x,y,6,0,Math.PI*2); c.fill();
+    c.fillStyle='#fff'; c.font='bold 7px JetBrains Mono'; c.textAlign='center';
+    c.fillText(l.lbl,x,y-10);
+  });
+  c.textAlign='left';
+}
+
+// ── Hist pair ─────────────────────────────────────────
+function histPair(id, data, p1, p99, doClamp, H) {
+  const disp=doClamp?clamp(data,p1,p99):data;
+  const {c,w}=ctx2d(id,H);
+  const pad={l:44,r:14,t:26,b:36};
+  const pw=w-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const bins=28, xMin=-12, xMax=12;
+  const cnt=new Array(bins).fill(0);
+  disp.forEach(v=>{ const b=Math.min(bins-1,Math.max(0,Math.floor((v-xMin)/(xMax-xMin)*bins))); cnt[b]++; });
+  const mx=Math.max(...cnt)||1;
+  grid(c,pad,pw,ph,xMin,xMax,mx);
+  const bw=pw/bins;
+  cnt.forEach((n,i)=>{
+    if(!n) return;
+    const xc=xMin+(i+.5)/bins*(xMax-xMin);
+    const isPile=doClamp&&(i===0||i===bins-1)&&n>1;
+    const x=pad.l+i*bw, bh=(n/mx)*ph, y=pad.t+ph-bh;
+    c.fillStyle=isPile?'#ff6b3566':'#00d4ff44';
+    c.strokeStyle=isPile?'#ff6b35':'#00d4ff77';
+    c.lineWidth=1;
+    c.beginPath(); c.roundRect(x+1,y,bw-2,bh,[2,2,0,0]); c.fill(); c.stroke();
+    if(isPile){ c.fillStyle='#ff6b35'; c.font='bold 9px JetBrains Mono'; c.textAlign='center'; c.fillText(`${n}↓`,x+bw/2,y-4); }
+  });
+  if(!doClamp){
+    const xP1=pad.l+(p1-xMin)/(xMax-xMin)*pw, xP99=pad.l+(p99-xMin)/(xMax-xMin)*pw;
+    [{x:xP1,lbl:'P1'},{x:xP99,lbl:'P99'}].forEach(l=>{
+      c.strokeStyle='#7c3aed'; c.lineWidth=2; c.setLineDash([5,3]);
+      c.beginPath(); c.moveTo(l.x,pad.t); c.lineTo(l.x,pad.t+ph); c.stroke(); c.setLineDash([]);
+      c.fillStyle='#a78bfa'; c.font='bold 9px JetBrains Mono'; c.textAlign='center'; c.fillText(l.lbl,l.x,pad.t-6);
+    });
+  }
+  c.textAlign='left';
+}
+
+// ── Sigmoid ───────────────────────────────────────────
+function sigPlot(id, data, p1, p99, doClamp, H) {
+  const {c,w}=ctx2d(id,H);
+  const pad={l:44,r:14,t:24,b:36};
+  const pw=w-pad.l-pad.r, ph=H-pad.t-pad.b;
+  const xMin=-10, xMax=10;
+  const toX=v=>pad.l+(v-xMin)/(xMax-xMin)*pw;
+  const toY=v=>pad.t+ph-(v/100)*ph;
+
+  if(!doClamp){
+    const xP1=toX(p1), xP99=toX(p99);
+    c.fillStyle='#ff6b3510'; c.fillRect(pad.l,pad.t,Math.max(0,xP1-pad.l),ph);
+    c.fillRect(Math.min(pad.l+pw,xP99),pad.t,Math.max(0,pad.l+pw-xP99),ph);
+    c.fillStyle='#ff6b3530'; c.font='9px JetBrains Mono'; c.textAlign='center';
+    c.fillText('ölü bölge',pad.l+(xP1-pad.l)/2,pad.t+ph/2);
+    c.fillText('ölü bölge',xP99+(pad.l+pw-xP99)/2,pad.t+ph/2);
+  }
+
+  for(let i=0;i<=5;i++){
+    const x=pad.l+pw*i/5, xv=xMin+(xMax-xMin)*i/5;
+    c.strokeStyle='#1e1e2e'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,pad.t); c.lineTo(x,pad.t+ph); c.stroke();
+    c.fillStyle='#64748b'; c.font='9px JetBrains Mono'; c.textAlign='center'; c.fillText(xv.toFixed(0),x,pad.t+ph+14);
+  }
+  for(let i=0;i<=4;i++){
+    const y=pad.t+ph*i/4;
+    c.strokeStyle='#1e1e2e'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(pad.l,y); c.lineTo(pad.l+pw,y); c.stroke();
+    c.fillStyle='#64748b'; c.font='9px JetBrains Mono'; c.textAlign='right'; c.fillText((100-i*25).toString(),pad.l-4,y+3);
+  }
+
+  c.beginPath(); c.strokeStyle='#00d4ff'; c.lineWidth=2.5;
+  for(let px=0;px<=pw;px++){
+    const z=xMin+(px/pw)*(xMax-xMin);
+    const s=100/(1+Math.exp(0.7*(z-1.21)));
+    const x=pad.l+px, y=toY(s);
+    px===0?c.moveTo(x,y):c.lineTo(x,y);
+  }
+  c.stroke();
+
+  const disp=doClamp?clamp(data,p1,p99):data;
+  disp.forEach((z,i)=>{
+    const orig=data[i];
+    const wasC=doClamp&&(orig<p1||orig>p99);
+    const s=100/(1+Math.exp(0.7*(z-1.21)));
+    c.fillStyle=wasC?'#ff6b35':'rgba(0,212,255,0.5)';
+    c.beginPath(); c.arc(toX(z),toY(s),wasC?5:3,0,Math.PI*2); c.fill();
+  });
+
+  if(doClamp){
+    [p1,p99].forEach(pv=>{
+      c.strokeStyle='#7c3aed'; c.lineWidth=1.5; c.setLineDash([4,3]);
+      c.beginPath(); c.moveTo(toX(pv),pad.t); c.lineTo(toX(pv),pad.t+ph); c.stroke(); c.setLineDash([]);
+    });
+  }
+  c.textAlign='left';
+}
+
+// ── Live histogram ────────────────────────────────────
+function liveHist(p) {
+  const p1=pct(zData,p), p99=pct(zData,100-p);
+  const {c,w,h:H}=ctx2d('c_live1',290); const hh=290;
+  const pad={l:44,r:14,t:32,b:36};
+  const pw=w-pad.l-pad.r, ph=hh-pad.t-pad.b;
+  const bins=34, xMin=-12, xMax=12;
+  const cnt=new Array(bins).fill(0);
+  zData.forEach(v=>{ const b=Math.min(bins-1,Math.max(0,Math.floor((v-xMin)/(xMax-xMin)*bins))); cnt[b]++; });
+  const mx=Math.max(...cnt)||1;
+  grid(c,pad,pw,ph,xMin,xMax,mx);
+  const bw=pw/bins;
+  cnt.forEach((n,i)=>{
+    if(!n) return;
+    const xc=xMin+(i+.5)/bins*(xMax-xMin);
+    const isLo=xc<p1, isHi=xc>p99;
+    const x=pad.l+i*bw, bh=(n/mx)*ph, y=pad.t+ph-bh;
+    c.fillStyle=isLo?'#ff6b3566':isHi?'#ef444466':'#00d4ff44';
+    c.strokeStyle=isLo?'#ff6b35':isHi?'#ef4444':'#00d4ff77';
+    c.lineWidth=1;
+    c.beginPath(); c.roundRect(x+1,y,bw-2,bh,[2,2,0,0]); c.fill(); c.stroke();
+  });
+  const xP1=pad.l+(p1-xMin)/(xMax-xMin)*pw;
+  const xP99=pad.l+(p99-xMin)/(xMax-xMin)*pw;
+  c.fillStyle='#ff6b3310'; c.fillRect(pad.l,pad.t,Math.max(0,xP1-pad.l),ph);
+  c.fillRect(Math.min(pad.l+pw,xP99),pad.t,Math.max(0,pad.l+pw-xP99),ph);
+  [{x:xP1,lbl:`P${p.toFixed(1)}=${p1.toFixed(2)}`},{x:xP99,lbl:`P${(100-p).toFixed(1)}=${p99.toFixed(2)}`}].forEach(l=>{
+    c.strokeStyle='#7c3aed'; c.lineWidth=2; c.setLineDash([5,3]);
+    c.beginPath(); c.moveTo(l.x,pad.t); c.lineTo(l.x,pad.t+ph); c.stroke(); c.setLineDash([]);
+    c.fillStyle='#a78bfa'; c.font='bold 9px JetBrains Mono'; c.textAlign='center'; c.fillText(l.lbl,l.x,pad.t-10);
+  });
+  const cLo=zData.filter(v=>v<p1).length, cHi=zData.filter(v=>v>p99).length;
+  c.fillStyle='#ff6b35'; c.font='10px JetBrains Mono'; c.textAlign='left'; c.fillText(`Alt kırpılan: ${cLo}`,pad.l+4,pad.t-2);
+  c.textAlign='right'; c.fillText(`Üst kırpılan: ${cHi}`,pad.l+pw,pad.t-2);
+  c.textAlign='left';
+
+  // scatter
+  liveScatter(p1,p99);
+
+  // stats
+  const cl=cLo+cHi;
+  document.getElementById('sr5').innerHTML=
+    sb(`P${p.toFixed(1)}`,p1.toFixed(3),'#7c3aed')+
+    sb(`P${(100-p).toFixed(1)}`,p99.toFixed(3),'#7c3aed')+
+    sb('Toplam',zData.length,'#64748b')+
+    sb('Kırpılan',cl,'#ff6b35')+
+    sb('Kırpma %',((cl/zData.length)*100).toFixed(1)+'%','#ff6b35')+
+    sb('Dokunulmayan',zData.length-cl,'#00d4ff');
+}
+
+function liveScatter(p1, p99) {
+  const {c,w,h:H}=ctx2d('c_live2',260); const hh=260;
+  const pad={l:50,r:14,t:20,b:36};
+  const pw=w-pad.l-pad.r, ph=hh-pad.t-pad.b;
+  const cl=clamp(zData,p1,p99);
+  const xMin=Math.min(...zData)-0.5, xMax=Math.max(...zData)+0.5;
+  const yMin=Math.min(...cl)-0.5, yMax=Math.max(...cl)+0.5;
+  const toX=v=>pad.l+(v-xMin)/(xMax-xMin)*pw;
+  const toY=v=>pad.t+ph-((v-yMin)/(yMax-yMin))*ph;
+
+  for(let i=0;i<=5;i++){
+    const x=pad.l+pw*i/5, xv=xMin+(xMax-xMin)*i/5;
+    const y=pad.t+ph*i/5, yv=yMax-(yMax-yMin)*i/5;
+    c.strokeStyle='#1e1e2e'; c.lineWidth=1;
+    c.beginPath(); c.moveTo(x,pad.t); c.lineTo(x,pad.t+ph); c.stroke();
+    c.beginPath(); c.moveTo(pad.l,y); c.lineTo(pad.l+pw,y); c.stroke();
+    c.fillStyle='#64748b'; c.font='9px JetBrains Mono';
+    c.textAlign='center'; c.fillText(xv.toFixed(1),x,pad.t+ph+14);
+    c.textAlign='right'; c.fillText(yv.toFixed(1),pad.l-4,y+3);
+  }
+
+  // y=x
+  c.strokeStyle='#ffffff15'; c.lineWidth=1.5; c.setLineDash([4,3]);
+  c.beginPath(); c.moveTo(toX(xMin),toY(Math.max(yMin,xMin))); c.lineTo(toX(xMax),toY(Math.min(yMax,xMax))); c.stroke();
+  c.setLineDash([]);
+  c.fillStyle='#ffffff20'; c.font='9px JetBrains Mono'; c.textAlign='right';
+  c.fillText('y=x (değişim yok)',pad.l+pw-4,pad.t+14);
+
+  // P1/P99 horizontal
+  [p1,p99].forEach(pv=>{
+    const y=toY(pv);
+    c.strokeStyle='#7c3aed60'; c.lineWidth=1.5; c.setLineDash([3,3]);
+    c.beginPath(); c.moveTo(pad.l,y); c.lineTo(pad.l+pw,y); c.stroke(); c.setLineDash([]);
+  });
+
+  zData.forEach((v,i)=>{
+    const cv=cl[i], wasC=v!==cv;
+    const x=toX(v), y=toY(cv);
+    if(wasC){
+      c.strokeStyle='#ff6b3550'; c.lineWidth=1.5;
+      c.beginPath(); c.moveTo(x,toY(v)); c.lineTo(x,y); c.stroke();
+    }
+    c.fillStyle=wasC?(v<p1?'#ff6b35':'#ef4444'):'rgba(0,212,255,0.55)';
+    c.beginPath(); c.arc(x,y,wasC?5:3,0,Math.PI*2); c.fill();
+  });
+  c.textAlign='left';
+}
+
+// ── Clamp table ───────────────────────────────────────
+function clampTable(p1, p99) {
+  const cl=clamp(zData,p1,p99);
+  const rows=zData.map((v,i)=>({v,c:cl[i],i})).filter(x=>x.v!==x.c||Math.abs(x.v)>2).slice(0,15);
+  let h=`<thead><tr><th style="text-align:left">Rental</th><th>Ham Z</th><th>Durum</th><th>Kırpılmış Z</th><th>Fark</th></tr></thead><tbody>`;
+  rows.forEach(({v,c,i})=>{
+    const cl2=v!==c;
+    const st=v<p1?'🔴 P1 altı kırpıldı':v>p99?'🔴 P99 üstü kırpıldı':'✅ dokunulmadı';
+    const d=c-v;
+    h+=`<tr style="background:${cl2?'#ff6b3515':''}">
+      <td style="color:#64748b">R${i+1}</td>
+      <td style="color:${cl2?'#ff6b35':'#e2e8f0'}">${v.toFixed(3)}</td>
+      <td>${st}</td>
+      <td style="color:#00d4ff">${c.toFixed(3)}</td>
+      <td style="color:${d!==0?'#ff6b35':'#64748b'}">${d!==0?d.toFixed(3):'—'}</td>
+    </tr>`;
+  });
+  h+='</tbody>';
+  document.getElementById('clampTbl').innerHTML=h;
+}
+
+// ── Stat box ──────────────────────────────────────────
+function sb(label, value, color) {
+  return `<div class="stat-box"><div class="stat-label">${label}</div><div class="stat-value" style="color:${color}">${value}</div></div>`;
+}
+
+function statsRow(id, p1, p99) {
+  const cl=zData.filter(v=>v<p1||v>p99).length;
+  document.getElementById(id).innerHTML=
+    sb('P1',p1.toFixed(3),'#7c3aed')+sb('P99',p99.toFixed(3),'#7c3aed')+
+    sb('Toplam',zData.length,'#64748b')+sb('Kırpılan',cl,'#ff6b35')+
+    sb('Kırpma %',((cl/zData.length)*100).toFixed(1)+'%','#ff6b35')+
+    sb('Dokunulmayan',zData.length-cl,'#00d4ff');
+}
+
+// ── Render all ────────────────────────────────────────
+function renderAll() {
+  const p1=pct(zData,1), p99=pct(zData,99);
+  hist('c_hist1',zData,p1,p99,280);
+  statsRow('sr1',p1,p99);
+  sorted('c_sorted',zData,p1,p99);
+  statsRow('sr2',p1,p99);
+  histPair('c_before',zData,p1,p99,false,240);
+  histPair('c_after',zData,p1,p99,true,240);
+  clampTable(p1,p99);
+  sigPlot('c_sig1',zData,p1,p99,false,260);
+  sigPlot('c_sig2',zData,p1,p99,true,260);
+  liveHist(parseFloat(document.getElementById('pctSlider').value));
+}
+
+// ── Nav ───────────────────────────────────────────────
+function goStep(n) {
+  document.querySelectorAll('.panel').forEach((p,i)=>p.classList.toggle('active',i===n));
+  document.querySelectorAll('.step-btn').forEach((b,i)=>b.classList.toggle('active',i===n));
+  setTimeout(renderAll,50);
+}
+
+document.getElementById('pctSlider').addEventListener('input',function(){
+  document.getElementById('pctVal').textContent=this.value+'%';
+  liveHist(parseFloat(this.value));
+});
+
+document.getElementById('regenBtn').addEventListener('click',()=>{ gen(); renderAll(); });
+window.addEventListener('resize', renderAll);
+
+gen(); renderAll();
+</script>
+</body>
+</html>

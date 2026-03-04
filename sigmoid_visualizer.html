@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sigmoid K Değeri Görselleştirici</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --accent1: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 32px 24px;
+  }
+
+  h1 {
+    font-size: 2rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, var(--accent1), var(--accent3));
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.85rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 32px;
+  }
+
+  .layout {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 20px;
+    max-width: 1100px;
+  }
+
+  .controls {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 20px;
+  }
+
+  .card-title {
+    font-size: 0.7rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 16px;
+  }
+
+  .slider-group {
+    margin-bottom: 20px;
+  }
+
+  .slider-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 8px;
+  }
+
+  .slider-name {
+    font-size: 0.9rem;
+    font-weight: 700;
+  }
+
+  .slider-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent1);
+    background: rgba(0,212,255,0.1);
+    padding: 2px 10px;
+    border-radius: 6px;
+  }
+
+  input[type=range] {
+    width: 100%;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--accent1);
+    box-shadow: 0 0 10px rgba(0,212,255,0.5);
+    cursor: pointer;
+  }
+
+  .shift-display {
+    margin-top: 12px;
+    padding: 12px;
+    background: rgba(124,58,237,0.1);
+    border: 1px solid rgba(124,58,237,0.3);
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+  }
+
+  .shift-display span {
+    color: var(--accent3);
+    font-weight: 700;
+    font-size: 1rem;
+  }
+
+  .stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-top: 4px;
+  }
+
+  .stat-box {
+    background: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 10px;
+    text-align: center;
+  }
+
+  .stat-label {
+    font-size: 0.65rem;
+    color: var(--muted);
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 4px;
+  }
+
+  .stat-value {
+    font-size: 1.1rem;
+    font-weight: 700;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .charts {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+  }
+
+  canvas {
+    width: 100%;
+    display: block;
+    border-radius: 8px;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 8px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+  }
+
+  .legend-dot {
+    width: 24px;
+    height: 3px;
+    border-radius: 2px;
+  }
+
+  .insight {
+    padding: 12px 16px;
+    border-radius: 8px;
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    line-height: 1.6;
+    border-left: 3px solid;
+  }
+
+  .insight.soft {
+    background: rgba(0,212,255,0.05);
+    border-color: var(--accent1);
+    color: #94d8e8;
+  }
+
+  .insight.hard {
+    background: rgba(255,107,53,0.05);
+    border-color: var(--accent2);
+    color: #e8b494;
+  }
+</style>
+</head>
+<body>
+
+<h1>Sigmoid K Değeri</h1>
+<p class="subtitle">score = 100 / (1 + e^(k × (z − shift)))</p>
+
+<div class="layout">
+  <div class="controls">
+
+    <div class="card">
+      <div class="card-title">Parametreler</div>
+
+      <div class="slider-group">
+        <div class="slider-label">
+          <span class="slider-name">k değeri</span>
+          <span class="slider-val" id="kVal">0.70</span>
+        </div>
+        <input type="range" id="kSlider" min="0.2" max="2.0" step="0.05" value="0.70">
+      </div>
+
+      <div class="shift-display">
+        Ortalama sürücü 70 puan için:<br>
+        shift = 0.847 / k = <span id="shiftVal">1.210</span>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Z=0'da Skor (Ort. Sürücü)</div>
+      <div class="stats-grid">
+        <div class="stat-box">
+          <div class="stat-label">z = -2</div>
+          <div class="stat-value" id="statN2" style="color:#00d4ff">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">z = -1</div>
+          <div class="stat-value" id="statN1" style="color:#00d4ff">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">z = 0</div>
+          <div class="stat-value" id="stat0" style="color:#7c3aed">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">z = +1</div>
+          <div class="stat-value" id="statP1" style="color:#ff6b35">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">z = +2</div>
+          <div class="stat-value" id="statP2" style="color:#ff6b35">—</div>
+        </div>
+        <div class="stat-box">
+          <div class="stat-label">z = +3</div>
+          <div class="stat-value" id="statP3" style="color:#ff6b35">—</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="card" id="insightCard">
+      <div class="card-title">Yorum</div>
+      <div id="insightText" class="insight soft"></div>
+    </div>
+
+  </div>
+
+  <div class="charts">
+    <div class="card">
+      <div class="card-title">Sigmoid Eğrisi — Skor vs Z-Score</div>
+      <canvas id="sigmoidCanvas" height="300"></canvas>
+      <div class="legend">
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#00d4ff"></div>
+          <span>Mevcut k</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#ff6b35; opacity:0.5"></div>
+          <span>k = 0.55 (yumuşak)</span>
+        </div>
+        <div class="legend-item">
+          <div class="legend-dot" style="background:#7c3aed; opacity:0.5"></div>
+          <span>k = 1.20 (sert)</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Skor Dağılımı — Çan Eğrisi Etkisi</div>
+      <canvas id="distCanvas" height="220"></canvas>
+    </div>
+  </div>
+</div>
+
+<script>
+  const sigmoid = (z, k, shift) => 100 / (1 + Math.exp(k * (z - shift)));
+
+  function getShift(k) { return 0.847 / k; }
+
+  function drawSigmoid(k) {
+    const canvas = document.getElementById('sigmoidCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth * window.devicePixelRatio;
+    const H = 300 * window.devicePixelRatio;
+    canvas.width = W;
+    canvas.height = H;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const w = canvas.offsetWidth;
+    const h = 300;
+
+    const pad = { l: 48, r: 20, t: 20, b: 40 };
+    const pw = w - pad.l - pad.r;
+    const ph = h - pad.t - pad.b;
+
+    ctx.fillStyle = '#12121a';
+    ctx.fillRect(0, 0, w, h);
+
+    // Grid
+    ctx.strokeStyle = '#1e1e2e';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 10; i++) {
+      const y = pad.t + (ph * i / 10);
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px JetBrains Mono';
+      ctx.fillText((100 - i * 10).toString(), 4, y + 4);
+    }
+    for (let i = -4; i <= 4; i++) {
+      const x = pad.l + pw * (i + 4) / 8;
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(i.toString(), x, h - 8);
+    }
+
+    // Reference lines
+    ctx.strokeStyle = '#ffffff10';
+    ctx.lineWidth = 1;
+    ctx.setLineDash([4, 4]);
+    const y70 = pad.t + ph * (1 - 70/100);
+    ctx.beginPath(); ctx.moveTo(pad.l, y70); ctx.lineTo(pad.l + pw, y70); ctx.stroke();
+    ctx.fillStyle = '#ffffff20';
+    ctx.font = '9px JetBrains Mono';
+    ctx.textAlign = 'left';
+    ctx.fillText('70', 2, y70 + 3);
+    ctx.setLineDash([]);
+
+    // Draw curves
+    const curves = [
+      { k: 0.55, shift: getShift(0.55), color: '#ff6b3560', width: 2 },
+      { k: 1.20, shift: getShift(1.20), color: '#7c3aed60', width: 2 },
+      { k: k,    shift: getShift(k),    color: '#00d4ff',   width: 3 },
+    ];
+
+    curves.forEach(c => {
+      ctx.beginPath();
+      ctx.strokeStyle = c.color;
+      ctx.lineWidth = c.width;
+      for (let px = 0; px <= pw; px++) {
+        const z = -4 + (px / pw) * 8;
+        const score = sigmoid(z, c.k, c.shift);
+        const x = pad.l + px;
+        const y = pad.t + ph * (1 - score / 100);
+        if (px === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      }
+      ctx.stroke();
+    });
+
+    ctx.textAlign = 'left';
+  }
+
+  function drawDist(k) {
+    const canvas = document.getElementById('distCanvas');
+    const ctx = canvas.getContext('2d');
+    const W = canvas.offsetWidth * window.devicePixelRatio;
+    const H = 220 * window.devicePixelRatio;
+    canvas.width = W;
+    canvas.height = H;
+    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
+    const w = canvas.offsetWidth;
+    const h = 220;
+
+    const pad = { l: 48, r: 20, t: 20, b: 40 };
+    const pw = w - pad.l - pad.r;
+    const ph = h - pad.t - pad.b;
+
+    ctx.fillStyle = '#12121a';
+    ctx.fillRect(0, 0, w, h);
+
+    const shift = getShift(k);
+
+    // Simüle edilmiş normal dağılımdan skor dağılımı
+    const bins = 50;
+    const counts = new Array(bins).fill(0);
+    const N = 2000;
+
+    for (let i = 0; i < N; i++) {
+      // Box-Muller normal dağılım
+      const u1 = Math.random(), u2 = Math.random();
+      const z = Math.sqrt(-2 * Math.log(u1)) * Math.cos(2 * Math.PI * u2);
+      const zc = Math.max(-3, Math.min(3, z));
+      const score = sigmoid(zc, k, shift);
+      const bin = Math.min(bins - 1, Math.floor(score / 100 * bins));
+      counts[bin]++;
+    }
+
+    const maxCount = Math.max(...counts);
+
+    // Grid
+    ctx.strokeStyle = '#1e1e2e';
+    ctx.lineWidth = 1;
+    for (let i = 0; i <= 5; i++) {
+      const x = pad.l + pw * i / 5;
+      ctx.beginPath(); ctx.moveTo(x, pad.t); ctx.lineTo(x, pad.t + ph); ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText((i * 20).toString(), x, h - 8);
+    }
+
+    // Bars
+    const barW = pw / bins;
+    counts.forEach((c, i) => {
+      const x = pad.l + i * barW;
+      const barH = (c / maxCount) * ph;
+      const y = pad.t + ph - barH;
+      const score = (i / bins) * 100;
+
+      let color;
+      if (score >= 80) color = '#00d4ff';
+      else if (score >= 60) color = '#7c3aed';
+      else if (score >= 40) color = '#ff6b35';
+      else color = '#ef4444';
+
+      ctx.fillStyle = color + 'aa';
+      ctx.fillRect(x + 1, y, barW - 2, barH);
+    });
+
+    // Label
+    ctx.fillStyle = '#64748b';
+    ctx.font = '10px JetBrains Mono';
+    ctx.textAlign = 'center';
+    ctx.fillText('Skor →', pad.l + pw / 2, h - 2);
+    ctx.textAlign = 'left';
+  }
+
+  function updateStats(k) {
+    const shift = getShift(k);
+    document.getElementById('kVal').textContent = k.toFixed(2);
+    document.getElementById('shiftVal').textContent = shift.toFixed(3);
+
+    const zVals = [-2, -1, 0, 1, 2, 3];
+    const ids = ['statN2', 'statN1', 'stat0', 'statP1', 'statP2', 'statP3'];
+    zVals.forEach((z, i) => {
+      document.getElementById(ids[i]).textContent = sigmoid(z, k, shift).toFixed(1);
+    });
+
+    // Insight
+    const insight = document.getElementById('insightText');
+    const card = document.getElementById('insightCard');
+    if (k < 0.5) {
+      insight.className = 'insight soft';
+      insight.textContent = `k=${k.toFixed(2)} → Çok yumuşak eğim.\nHerkes birbirine yakın skor alır.\nİyi/kötü ayrımı zayıf.\nFark etmez mantığı hakim.`;
+    } else if (k < 0.8) {
+      insight.className = 'insight soft';
+      insight.textContent = `k=${k.toFixed(2)} → Dengeli eğim.\nOrtalama sürücü ~70 puan.\nİyi sürücüler ödüllenir,\nkötüler makul şekilde cezalanır.`;
+    } else if (k < 1.2) {
+      insight.className = 'insight hard';
+      insight.textContent = `k=${k.toFixed(2)} → Sert eğim.\nAyrım güçlendi.\nOrtalama sürücü hala ~70 alır\nama uçlar daha belirgin.`;
+    } else {
+      insight.className = 'insight hard';
+      insight.textContent = `k=${k.toFixed(2)} → Çok sert eğim.\nBiraz kötü davranış büyük ceza.\nSkorlar 0 veya 100'e\nyığılmaya başlar.`;
+    }
+  }
+
+  function update() {
+    const k = parseFloat(document.getElementById('kSlider').value);
+    updateStats(k);
+    drawSigmoid(k);
+    drawDist(k);
+  }
+
+  document.getElementById('kSlider').addEventListener('input', update);
+  window.addEventListener('resize', update);
+  update();
+</script>
+</body>
+</html>

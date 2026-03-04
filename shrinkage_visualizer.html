@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Shrinkage Görselleştirici</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;700&family=Syne:wght@400;700;800&display=swap');
+
+  :root {
+    --bg: #0a0a0f;
+    --surface: #12121a;
+    --border: #1e1e2e;
+    --accent1: #00d4ff;
+    --accent2: #ff6b35;
+    --accent3: #7c3aed;
+    --green: #22c55e;
+    --text: #e2e8f0;
+    --muted: #64748b;
+  }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'Syne', sans-serif;
+    min-height: 100vh;
+    padding: 28px 24px;
+  }
+
+  h1 {
+    font-size: 1.8rem;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    background: linear-gradient(135deg, #22c55e, #00d4ff);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 4px;
+  }
+
+  .subtitle {
+    color: var(--muted);
+    font-size: 0.8rem;
+    font-family: 'JetBrains Mono', monospace;
+    margin-bottom: 24px;
+  }
+
+  .top-controls {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .control-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 14px 18px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .control-label {
+    font-size: 0.75rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+  }
+
+  .control-val {
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 1rem;
+    font-weight: 700;
+    color: var(--accent1);
+    background: rgba(0,212,255,0.1);
+    padding: 2px 10px;
+    border-radius: 6px;
+    min-width: 50px;
+    text-align: center;
+  }
+
+  input[type=range] {
+    width: 120px;
+    -webkit-appearance: none;
+    height: 4px;
+    border-radius: 2px;
+    background: var(--border);
+    outline: none;
+    cursor: pointer;
+  }
+
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    background: var(--accent1);
+    box-shadow: 0 0 8px rgba(0,212,255,0.5);
+    cursor: pointer;
+  }
+
+  .btn {
+    background: rgba(0,212,255,0.1);
+    border: 1px solid rgba(0,212,255,0.3);
+    color: var(--accent1);
+    padding: 8px 16px;
+    border-radius: 8px;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.8rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn:hover {
+    background: rgba(0,212,255,0.2);
+  }
+
+  .grid3 {
+    display: grid;
+    grid-template-columns: 1fr 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .grid2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 16px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    padding: 18px;
+  }
+
+  .card-title {
+    font-size: 0.68rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    margin-bottom: 14px;
+  }
+
+  .card-title span {
+    color: var(--accent1);
+  }
+
+  canvas {
+    width: 100%;
+    display: block;
+  }
+
+  .table-wrap {
+    overflow-x: auto;
+  }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 0.75rem;
+  }
+
+  th {
+    color: var(--muted);
+    font-weight: 400;
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid var(--border);
+  }
+
+  th:first-child { text-align: left; }
+
+  td {
+    padding: 6px 10px;
+    text-align: right;
+    border-bottom: 1px solid #1e1e2e44;
+  }
+
+  td:first-child { text-align: left; color: var(--muted); }
+
+  tr:hover td { background: rgba(255,255,255,0.02); }
+
+  .pill {
+    display: inline-block;
+    padding: 1px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+  }
+
+  .legend {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-top: 10px;
+  }
+
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.72rem;
+    font-family: 'JetBrains Mono', monospace;
+    color: var(--muted);
+  }
+
+  .legend-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+  }
+
+  .legend-line {
+    width: 20px;
+    height: 3px;
+    border-radius: 2px;
+  }
+</style>
+</head>
+<body>
+
+<h1>Shrinkage Görselleştirici</h1>
+<p class="subtitle">Ham Rate → Shrinkage → Log Dönüşümü — Adım Adım</p>
+
+<div class="top-controls">
+  <div class="control-card">
+    <div class="control-label">prior_km</div>
+    <input type="range" id="priorKm" min="1" max="30" step="1" value="8">
+    <div class="control-val" id="priorKmVal">8</div>
+  </div>
+  <button class="btn" id="regenBtn">↻ Yeni Örnekler</button>
+  <div class="control-card" style="gap:8px">
+    <div class="legend-dot" style="background:#ff6b35"></div>
+    <span style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted)">Kısa km (&lt;10)</span>
+    <div class="legend-dot" style="background:#00d4ff; margin-left:8px"></div>
+    <span style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted)">Orta km</span>
+    <div class="legend-dot" style="background:#22c55e; margin-left:8px"></div>
+    <span style="font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--muted)">Uzun km (&gt;30)</span>
+  </div>
+</div>
+
+<div class="grid3">
+  <div class="card">
+    <div class="card-title">Adım 1 — <span>Ham Rate</span> (per 10km)</div>
+    <canvas id="c1" height="200"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Adım 2 — <span>Shrinkage Sonrası</span> Rate</div>
+    <canvas id="c2" height="200"></canvas>
+  </div>
+  <div class="card">
+    <div class="card-title">Adım 3 — <span>Log</span> Dönüşümü ln(x+1)</div>
+    <canvas id="c3" height="200"></canvas>
+  </div>
+</div>
+
+<div class="grid2">
+  <div class="card">
+    <div class="card-title">Shrinkage Etkisi — <span>Ham vs Shrunk</span> (prior çizgisi gösterir)</div>
+    <canvas id="c4" height="220"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#ff6b35"></div>Ham Rate</div>
+      <div class="legend-item"><div class="legend-line" style="background:#00d4ff"></div>Shrunk Rate</div>
+      <div class="legend-item"><div class="legend-line" style="background:#ffffff30; border-top: 2px dashed #ffffff30"></div>Prior (ort.)</div>
+    </div>
+  </div>
+  <div class="card">
+    <div class="card-title">Log Etkisi — <span>Shrunk vs Log</span></div>
+    <canvas id="c5" height="220"></canvas>
+    <div class="legend">
+      <div class="legend-item"><div class="legend-line" style="background:#00d4ff"></div>Shrunk Rate</div>
+      <div class="legend-item"><div class="legend-line" style="background:#22c55e"></div>Log Rate</div>
+    </div>
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-title">Tüm Adımlar — <span>Veri Tablosu</span></div>
+  <div class="table-wrap">
+    <table id="dataTable"></table>
+  </div>
+</div>
+
+<script>
+  // Veri üret
+  let samples = [];
+
+  function generateSamples() {
+    samples = [];
+    const kmProfiles = [2, 3, 5, 8, 12, 18, 25, 35, 50, 80];
+    kmProfiles.forEach((km, i) => {
+      // km'ye göre mantıklı event sayısı
+      const baseEvents = km * (0.3 + Math.random() * 0.8);
+      const w = Math.max(0, Math.round(baseEvents + (Math.random() - 0.5) * baseEvents));
+      samples.push({ id: i + 1, km, w });
+    });
+    // Birkaç aykırı ekle
+    samples[0].w = 8;  // 2km'de çok event — gürültü
+    samples[9].w = 2;  // 80km'de az event — iyi sürücü
+  }
+
+  function getColor(km) {
+    if (km < 10) return '#ff6b35';
+    if (km < 30) return '#00d4ff';
+    return '#22c55e';
+  }
+
+  function compute() {
+    const priorKm = parseFloat(document.getElementById('priorKm').value);
+
+    // Ham rate
+    samples.forEach(s => {
+      s.rate = s.km > 0 ? (s.w * 10) / s.km : 0;
+    });
+
+    // Prior = ortalama rate
+    const prior = samples.reduce((a, b) => a + b.rate, 0) / samples.length;
+
+    // Shrinkage
+    samples.forEach(s => {
+      s.shrunk = (s.rate * s.km + prior * priorKm) / (s.km + priorKm);
+      s.log = Math.log(s.shrunk + 1);
+      s.prior = prior;
+      s.priorKm = priorKm;
+      s.pullPct = Math.round((priorKm / (s.km + priorKm)) * 100);
+    });
+
+    return prior;
+  }
+
+  function drawBar(canvasId, values, colors, maxOverride) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth * dpr;
+    const H = 200 * dpr;
+    canvas.width = W;
+    canvas.height = H;
+    ctx.scale(dpr, dpr);
+    const w = canvas.offsetWidth;
+    const h = 200;
+
+    ctx.fillStyle = '#12121a';
+    ctx.fillRect(0, 0, w, h);
+
+    const pad = { l: 40, r: 10, t: 10, b: 30 };
+    const pw = w - pad.l - pad.r;
+    const ph = h - pad.t - pad.b;
+
+    const maxVal = maxOverride || Math.max(...values) * 1.15 || 1;
+
+    // Grid lines
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + ph * (1 - i / 4);
+      ctx.strokeStyle = '#1e1e2e';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.font = `${10 * dpr / dpr}px JetBrains Mono`;
+      ctx.textAlign = 'right';
+      ctx.fillText((maxVal * i / 4).toFixed(1), pad.l - 4, y + 4);
+    }
+
+    const barW = pw / values.length;
+    values.forEach((v, i) => {
+      const barH = (v / maxVal) * ph;
+      const x = pad.l + i * barW + barW * 0.1;
+      const y = pad.t + ph - barH;
+      const bw = barW * 0.8;
+
+      ctx.fillStyle = colors[i] + 'cc';
+      ctx.beginPath();
+      ctx.roundRect(x, y, bw, barH, [3, 3, 0, 0]);
+      ctx.fill();
+
+      // Value label
+      ctx.fillStyle = colors[i];
+      ctx.font = `9px JetBrains Mono`;
+      ctx.textAlign = 'center';
+      ctx.fillText(v.toFixed(1), x + bw / 2, y - 3);
+
+      // X label
+      ctx.fillStyle = '#64748b';
+      ctx.fillText(`R${i + 1}`, x + bw / 2, h - 8);
+    });
+    ctx.textAlign = 'left';
+  }
+
+  function drawCompare(canvasId, vals1, vals2, colors, prior, label1, label2) {
+    const canvas = document.getElementById(canvasId);
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth * dpr;
+    const H = 220 * dpr;
+    canvas.width = W;
+    canvas.height = H;
+    ctx.scale(dpr, dpr);
+    const w = canvas.offsetWidth;
+    const h = 220;
+
+    ctx.fillStyle = '#12121a';
+    ctx.fillRect(0, 0, w, h);
+
+    const pad = { l: 44, r: 10, t: 14, b: 30 };
+    const pw = w - pad.l - pad.r;
+    const ph = h - pad.t - pad.b;
+
+    const maxVal = Math.max(...vals1, ...vals2) * 1.2 || 1;
+
+    // Grid
+    for (let i = 0; i <= 4; i++) {
+      const y = pad.t + ph * (1 - i / 4);
+      ctx.strokeStyle = '#1e1e2e';
+      ctx.lineWidth = 1;
+      ctx.beginPath(); ctx.moveTo(pad.l, y); ctx.lineTo(pad.l + pw, y); ctx.stroke();
+      ctx.fillStyle = '#64748b';
+      ctx.font = '10px JetBrains Mono';
+      ctx.textAlign = 'right';
+      ctx.fillText((maxVal * i / 4).toFixed(1), pad.l - 4, y + 4);
+    }
+
+    // Prior line
+    if (prior !== undefined) {
+      const py = pad.t + ph * (1 - prior / maxVal);
+      ctx.strokeStyle = '#ffffff25';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([6, 4]);
+      ctx.beginPath(); ctx.moveTo(pad.l, py); ctx.lineTo(pad.l + pw, py); ctx.stroke();
+      ctx.setLineDash([]);
+      ctx.fillStyle = '#ffffff30';
+      ctx.font = '9px JetBrains Mono';
+      ctx.textAlign = 'left';
+      ctx.fillText('prior', pad.l + 4, py - 4);
+    }
+
+    const n = vals1.length;
+    const groupW = pw / n;
+
+    vals1.forEach((v1, i) => {
+      const v2 = vals2[i];
+      const gx = pad.l + i * groupW;
+      const bw = groupW * 0.35;
+
+      // Bar 1
+      const h1 = (v1 / maxVal) * ph;
+      ctx.fillStyle = '#ff6b3599';
+      ctx.beginPath();
+      ctx.roundRect(gx + groupW * 0.05, pad.t + ph - h1, bw, h1, [3,3,0,0]);
+      ctx.fill();
+
+      // Bar 2
+      const h2 = (v2 / maxVal) * ph;
+      ctx.fillStyle = '#00d4ff99';
+      ctx.beginPath();
+      ctx.roundRect(gx + groupW * 0.5, pad.t + ph - h2, bw, h2, [3,3,0,0]);
+      ctx.fill();
+
+      // Arrow showing pull direction
+      if (Math.abs(v1 - v2) > 0.05) {
+        const x1 = gx + groupW * 0.05 + bw / 2;
+        const x2 = gx + groupW * 0.5 + bw / 2;
+        const y1 = pad.t + ph - h1 - 2;
+        const y2 = pad.t + ph - h2 - 2;
+        ctx.strokeStyle = colors[i] + '60';
+        ctx.lineWidth = 1;
+        ctx.setLineDash([2, 2]);
+        ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+        ctx.setLineDash([]);
+      }
+
+      // X label
+      ctx.fillStyle = '#64748b';
+      ctx.font = '9px JetBrains Mono';
+      ctx.textAlign = 'center';
+      ctx.fillText(`R${i + 1}`, gx + groupW / 2, h - 8);
+    });
+    ctx.textAlign = 'left';
+  }
+
+  function updateTable(prior) {
+    const table = document.getElementById('dataTable');
+    let html = `<thead><tr>
+      <th>Rental</th>
+      <th>KM</th>
+      <th>w (event)</th>
+      <th>Ham Rate</th>
+      <th>Prior çekimi</th>
+      <th>Shrunk Rate</th>
+      <th>ln(shrunk+1)</th>
+    </tr></thead><tbody>`;
+
+    samples.forEach(s => {
+      const color = getColor(s.km);
+      const diff = s.rate - s.shrunk;
+      const arrow = diff > 0.1 ? '↓' : diff < -0.1 ? '↑' : '≈';
+      const arrowColor = diff > 0.1 ? '#ff6b35' : diff < -0.1 ? '#22c55e' : '#64748b';
+
+      html += `<tr>
+        <td><span style="color:${color}">R${s.id}</span></td>
+        <td><span style="color:${color}">${s.km}</span></td>
+        <td>${s.w}</td>
+        <td style="color:#ff6b35">${s.rate.toFixed(2)}</td>
+        <td style="color:${arrowColor}">${arrow} %${s.pullPct} prior</td>
+        <td style="color:#00d4ff">${s.shrunk.toFixed(2)}</td>
+        <td style="color:#22c55e">${s.log.toFixed(3)}</td>
+      </tr>`;
+    });
+
+    html += `</tbody>`;
+    table.innerHTML = html;
+  }
+
+  function update() {
+    const prior = compute();
+    const priorKm = parseFloat(document.getElementById('priorKm').value);
+    document.getElementById('priorKmVal').textContent = priorKm;
+
+    const colors = samples.map(s => getColor(s.km));
+    const maxRate = Math.max(...samples.map(s => s.rate)) * 1.2;
+
+    drawBar('c1', samples.map(s => s.rate),   colors, maxRate);
+    drawBar('c2', samples.map(s => s.shrunk), colors, maxRate);
+    drawBar('c3', samples.map(s => s.log),    colors);
+
+    drawCompare('c4',
+      samples.map(s => s.rate),
+      samples.map(s => s.shrunk),
+      colors, prior
+    );
+
+    drawCompare('c5',
+      samples.map(s => s.shrunk),
+      samples.map(s => s.log),
+      colors
+    );
+
+    updateTable(prior);
+  }
+
+  document.getElementById('priorKm').addEventListener('input', update);
+  document.getElementById('regenBtn').addEventListener('click', () => {
+    generateSamples();
+    update();
+  });
+  window.addEventListener('resize', update);
+
+  generateSamples();
+  update();
+</script>
+</body>
+</html>
